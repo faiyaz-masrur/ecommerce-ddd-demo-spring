@@ -14,6 +14,8 @@ import com.example.EcommerceDddDemoJava.shared.tracing.TraceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+
 @Service
 @RequiredArgsConstructor
 public class OrderApplicationService {
@@ -21,36 +23,39 @@ public class OrderApplicationService {
     private final IOrderRepository orderRepository;
     private final IInventoryRepository inventoryRepository;
 
-    public PlaceOrderResult placeOrder(PlaceOrderRequest request) {
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "placeOrder started");
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "creating ValueObjects");
+    public CompletableFuture<PlaceOrderResult> placeOrder(PlaceOrderRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
 
-        CustomerId customerId = CustomerId.create(request.customerId());
-        Sku sku = Sku.create(request.sku());
-        Quantity quantity = Quantity.create(request.quantity());
-        Money money = Money.create(request.unitPrice());
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "placeOrder started").join();
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "creating ValueObjects").join();
 
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "loading InventoryAggregate from repository");
-        InventoryAggregate inventory = inventoryRepository.getBySku(sku);
+            CustomerId customerId = CustomerId.create(request.customerId()).join();
+            Sku sku               = Sku.create(request.sku()).join();
+            Quantity quantity      = Quantity.create(request.quantity()).join();
+            Money money            = Money.create(request.unitPrice()).join();
 
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "creating OrderAggregate");
-        OrderAggregate order = OrderAggregate.createDraft(customerId);
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "loading InventoryAggregate from repository").join();
+            InventoryAggregate inventory = inventoryRepository.getBySku(sku).join();
 
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "calling OrderAggregate.place");
-        order.place(sku, quantity, money);
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "creating OrderAggregate").join();
+            OrderAggregate order = OrderAggregate.createDraft(customerId).join();
 
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "calling InventoryAggregate.reserve");
-        inventory.reserve(order.getId(), sku, quantity);
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "calling OrderAggregate.place").join();
+            order.place(sku, quantity, money).join();
 
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "saving aggregates through repositories");
-        orderRepository.save(order);
-        inventoryRepository.save(inventory);
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "calling InventoryAggregate.reserve").join();
+            inventory.reserve(order.getId(), sku, quantity).join();
 
-        TraceHelper.logInfo(OrderApplicationService.class.getSimpleName(), "building result model");
-        return new PlaceOrderResult(
-                order.getId().getValue(),
-                order.getStatus().getValue(),
-                sku.getValue(),
-                quantity.getValue());
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "saving aggregates through repositories").join();
+            orderRepository.save(order).join();
+            inventoryRepository.save(inventory).join();
+
+            TraceHelper.logInfoAsync(OrderApplicationService.class.getSimpleName(), "building result model").join();
+            return new PlaceOrderResult(
+                    order.getId().getValue(),
+                    order.getStatus().getValue(),
+                    sku.getValue(),
+                    quantity.getValue());
+        });
     }
 }

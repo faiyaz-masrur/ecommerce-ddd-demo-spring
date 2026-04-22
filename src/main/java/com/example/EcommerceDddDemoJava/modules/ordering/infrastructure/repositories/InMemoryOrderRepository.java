@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Repository
 public class InMemoryOrderRepository implements IOrderRepository {
@@ -14,8 +15,8 @@ public class InMemoryOrderRepository implements IOrderRepository {
     private final List<OrderAggregate> orders = new ArrayList<>();
 
     @Override
-    public void save(OrderAggregate order) {
-        TraceHelper.logInfo(InMemoryOrderRepository.class.getSimpleName(), "save()");
-        orders.add(order);
+    public CompletableFuture<Void> save(OrderAggregate order) {
+        return TraceHelper.logInfoAsync(InMemoryOrderRepository.class.getSimpleName(), "save()")
+                .thenRun(() -> orders.add(order));
     }
 }

@@ -6,17 +6,19 @@ import com.example.EcommerceDddDemoJava.modules.inventory.domain.valueObjects.Sk
 import com.example.EcommerceDddDemoJava.shared.tracing.TraceHelper;
 import org.springframework.stereotype.Repository;
 
+import java.util.concurrent.CompletableFuture;
+
 @Repository
 public class InMemoryInventoryRepository implements IInventoryRepository {
 
     @Override
-    public InventoryAggregate getBySku(Sku sku) {
-        TraceHelper.logInfo(InMemoryInventoryRepository.class.getSimpleName(), "getBySku()");
-        return InventoryAggregate.create(sku, 10);
+    public CompletableFuture<InventoryAggregate> getBySku(Sku sku) {
+        return TraceHelper.logInfoAsync(InMemoryInventoryRepository.class.getSimpleName(), "getBySku()")
+                .thenCompose(v -> InventoryAggregate.create(sku, 10));
     }
 
     @Override
-    public void save(InventoryAggregate inventory) {
-        TraceHelper.logInfo(InMemoryInventoryRepository.class.getSimpleName(), "save()");
+    public CompletableFuture<Void> save(InventoryAggregate inventory) {
+        return TraceHelper.logInfoAsync(InMemoryInventoryRepository.class.getSimpleName(), "save()");
     }
 }
