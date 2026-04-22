@@ -7,19 +7,24 @@ import com.example.EcommerceDddDemoJava.shared.tracing.TraceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.CompletableFuture;
+
 @Component
 @RequiredArgsConstructor
 public class PlaceOrderUseCase {
 
     private final OrderApplicationService orderApplicationService;
 
-    public PlaceOrderResult execute(PlaceOrderRequest request) {
-        TraceHelper.logInfo(PlaceOrderUseCase.class.getSimpleName(), "execution started");
-        TraceHelper.logInfo(PlaceOrderUseCase.class.getSimpleName(), "delegating to OrderApplicationService");
+    public CompletableFuture<PlaceOrderResult> execute(PlaceOrderRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
 
-        PlaceOrderResult result = orderApplicationService.placeOrder(request);
+            TraceHelper.logInfoAsync(PlaceOrderUseCase.class.getSimpleName(), "execution started").join();
+            TraceHelper.logInfoAsync(PlaceOrderUseCase.class.getSimpleName(), "delegating to OrderApplicationService").join();
 
-        TraceHelper.logInfo(PlaceOrderUseCase.class.getSimpleName(), "execution finished");
-        return result;
+            PlaceOrderResult result = orderApplicationService.placeOrder(request).join();
+
+            TraceHelper.logInfoAsync(PlaceOrderUseCase.class.getSimpleName(), "execution finished").join();
+            return result;
+        });
     }
 }

@@ -4,7 +4,8 @@ import com.example.EcommerceDddDemoJava.shared.tracing.TraceHelper;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Value;
+
+import java.util.concurrent.CompletableFuture;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -12,13 +13,13 @@ public final class OrderStatus {
 
     private final String value;
 
-    public static OrderStatus draft() {
-        TraceHelper.logInfo("OrderStatus", "draft()");
-        return new OrderStatus("DRAFT");
+    public static CompletableFuture<OrderStatus> draft() {
+        return TraceHelper.logInfoAsync("OrderStatus", "draft()")
+                .thenApply(v -> new OrderStatus("DRAFT"));
     }
 
-    public static OrderStatus placed() {
-        TraceHelper.logInfo("OrderStatus", "placed()");
-        return new OrderStatus("PLACED");
+    public static CompletableFuture<OrderStatus> placed() {
+        return TraceHelper.logInfoAsync("OrderStatus", "placed()")
+                .thenApply(v -> new OrderStatus("PLACED"));
     }
 }

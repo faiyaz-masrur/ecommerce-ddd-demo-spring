@@ -13,6 +13,7 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InventoryAggregate {
@@ -31,31 +32,31 @@ public final class InventoryAggregate {
         return Collections.unmodifiableList(reservations);
     }
 
-    public static InventoryAggregate create(Sku sku, int availableQuantity) {
-        TraceHelper.logInfo("InventoryAggregate", "create()");
-
-        if (availableQuantity < 0)
-            throw new IllegalArgumentException("availableQuantity must be >= 0");
-
-        InventoryAggregate aggregate = new InventoryAggregate();
-        aggregate.setSku(sku);
-        aggregate.setAvailableQuantity(availableQuantity);
-        return aggregate;
+    public static CompletableFuture<InventoryAggregate> create(Sku sku, int availableQuantity) {
+        return TraceHelper.logInfoAsync("InventoryAggregate", "create()")
+                .thenApply(v -> {
+                    if (availableQuantity < 0)
+                        throw new IllegalArgumentException("availableQuantity must be >= 0");
+                    InventoryAggregate aggregate = new InventoryAggregate();
+                    aggregate.setSku(sku);
+                    aggregate.setAvailableQuantity(availableQuantity);
+                    return aggregate;
+                });
     }
 
-    public void reserve(OrderId orderId, Sku sku, Quantity quantity) {
-        TraceHelper.logInfo("InventoryAggregate", "reserve() started");
-
-        if (!this.sku.getValue().equalsIgnoreCase(sku.getValue()))
-            throw new IllegalStateException("SKU mismatch.");
-
-        if (this.availableQuantity < quantity.getValue())
-            throw new IllegalStateException("Not enough stock.");
-
-        StockReservation reservation = StockReservation.create(orderId, sku, quantity);
-        reservations.add(reservation);
-        this.availableQuantity -= quantity.getValue();
-
-        TraceHelper.logInfo("InventoryAggregate", "reserve() finished");
+    public CompletableFuture<Void> reserve(OrderId orderId, Sku sku, Quantity quantity) {
+        return TraceHelper.logInfoAsync("InventoryAggregate", "reserve() started")
+                .thenCompose(v -> {
+                    if (!this.sku.getValue().equalsIgnoreCase(sku.getValue()))
+                        throw new IllegalStateException("SKU mismatch.");
+                    if (this.availableQuantity < quantity.getValue())
+                        throw new IllegalStateException("Not enough stock.");
+                    return StockReservation.create(orderId, sku, quantity);
+                })
+                .thenCompose(reservation -> {
+                    reservations.add(reservation);
+                    this.availableQuantity -= quantity.getValue();
+                    return TraceHelper.logInfoAsync("InventoryAggregate", "reserve() finished");
+                });
     }
 }

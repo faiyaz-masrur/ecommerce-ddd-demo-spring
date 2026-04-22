@@ -34,7 +34,7 @@ public class EcommerceDddDemoJavaApplication implements CommandLineRunner {
 				2,
 				new BigDecimal("499.00"));
 
-		PlaceOrderResult result = placeOrderUseCase.execute(request);
+		PlaceOrderResult result = placeOrderUseCase.execute(request).join();
 
 		System.out.println("====================================================");
 		System.out.println("EcommerceDddDemoJavaApplication -> flow finished");
